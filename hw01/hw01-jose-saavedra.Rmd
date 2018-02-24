@@ -1,0 +1,243 @@
+---
+title: "Homework 1"
+author: "Jose Saavedra"
+date: "2/22/2018"
+output: github_document
+---
+
+
+
+##Problem 1
+
+The data dictionary can be found in the hw01 folder under imports-85-dictionary.txt
+
+
+##Problem 2
+
+Importing Data
+```{r problem 2}
+names_columns <-  c('symboling',
+                    'normalized_losses'
+                    ,'make','fuel_type'
+                    ,'aspiration',
+                    'num_of_doors',
+                    'body_style',
+                    'drive_wheels',
+                    'engine_location',
+                    'wheel_base',
+                    'length',
+                    'width',
+                    'height',
+                    'curb_weight',
+                    'engine_type',
+                    'num-of_cylinders',
+                    'engine_size',
+                    'fuel_system',
+                    'bore',
+                    'stroke',
+                    'compression_ratio',
+                    'horsepower',
+                    'peak_rpm',
+                    'city_mpg',
+                    'highway_mpg',
+                    'price'
+                    )
+columns_types <- c('integer',
+                   'real',
+                   'character',
+                   'character',
+                   'character',
+                   'character',
+                   'character',
+                   'character',
+                   'character',
+                   'real',
+                   'real',
+                   'real',
+                   'real',
+                   'integer',
+                   'character',
+                   'character',
+                   'integer',
+                   'character',
+                   'real',
+                   'real',
+                   'real',
+                   'integer',
+                   'integer',
+                   'integer',
+                   'integer',
+                   'integer'
+                   )
+autos <- read.csv(file = 'imports-85.data',
+                  col.names = names_columns,
+                  colClasses = columns_types,
+                  na.strings = '?',
+                  header = F)
+str(autos)
+
+library(readr)
+
+
+autos2 <- read_csv(file = 'imports-85.data',
+                   col_names = names_columns,
+                   na='?',
+                   col_types = list(
+                   normalized_losses=col_double()
+                   ))
+str(autos2)
+```
+
+##Problem 3
+
+Technical Questions about importing data
+
+a.) The first row becomes the column names, this is bad you can fix this by adding header=F.
+
+b.)The code gives use all the data with generic column names V# 
+
+c.)they become factors since the columns have at least one character, and a column of characters in dataframe are automatilly made as factors 
+
+d.)The main reason the second option is larger is due to the fact taht the first frame saves the characters as factors, which are stored in a ledger and called on when seen, where as in the second frame we store the charaters as unique characters so they take up more space.
+
+e.)All character types are coerced as NA, and the integers are converted to reals
+
+##Problem 4
+
+Practice base plotting
+
+
+```{r  Problem 4}
+hist(autos$price, col = c('blue','red', 'green'),xlab = 'Price in Dollar',
+     main = 'Histogram of Prices of Autos')
+
+boxplot(autos$horsepower, horizontal = T, main='Box plot og horsepower')
+
+barplot(sort(table(autos$body_style), decreasing = T), col = c('red','blue'))
+
+stars(autos[autos$aspiration=='turbo',][,c(10:13,26)],main = 'stars plot of cars with turbo',key.loc = c(18,3))
+```
+
+
+##Problem 5
+
+Summaries
+
+a.)
+```{r problem 5a}
+mean(autos[autos$fuel_type =='gas',]$price, na.rm = TRUE)
+
+mean(autos[autos$fuel_type=='diesel',]$price, na.rm = TRUE)
+```
+
+b.)
+```{r problem 5b}
+autos[autos$num.of_cylinders=='twelve',]$make
+```
+
+c.)
+```{r problem 5c}
+A <- aggregate(autos[,"make"], by=list(autos$make,autos$fuel_type),FUN = length)
+A[which.max(A[A$Group.2=='diesel',]$x),]$Group.1
+
+```
+
+d.)
+```{r problem 5d}
+autos[which.max(autos$horsepower),]$price
+```
+Note that the car with the largest horsepower has an unknown price and therefore we get the above result (car 130, make porsche)
+
+e.)
+```{r problem 5e}
+Bottom10 <- range(autos$city_mpg, na.rm = T)
+Bottom10[2] <- quantile(autos$city_mpg, probs = .1)
+Bottom10
+```
+the output in the range where the bottom 10% lie
+
+f.)
+```{r problem 5f}
+Top10<- range(autos$highway_mpg, na.rm = T)
+Top10[1] <- quantile(autos$highway_mpg, probs = .9)
+Top10
+```
+the output is the range where the top 10% lie
+
+g.)
+```{r problem 5g}
+median(autos[autos$city_mpg<=Bottom10[2],]$price,na.rm = T)
+```
+
+##Problem 6
+
+Technical Questions about data frames
+
+a.) `dat$column_name` allows us to call on the column of name: column_name, and treating this as a vector `dat$xyz` if xyz does not exist then R returns NULL
+
+b.) Number 4 fails 
+
+c.)It fails since R doesn't understand that mpg is a name, this has to be explicitly denoted with a $ or "" or use row, column notation []
+
+d.)Yes since a data frame is at its basic structure a list, and you can append a list with a list since they are not atomic structures.
+
+e.) returns a list of 11 numerical vectors with the associated names
+
+f.) `as.data.frame()` can convert a list to a list into a data frame
+
+
+#Problem 7
+
+```{r problem 7}
+library(corrplot)
+qdat <- cor(na.omit(autos[,c(10:14, 17, 19:26)]))
+#corrplot number 1
+corrplot(qdat, method = 'circle')
+#corrplot number 2
+corrplot(qdat, method = 'color', type = 'upper')
+```
+Things that I noted, any descriptors to do with size are all postively correlated and anything to do with mileage and proformace is negatively correlated
+
+
+##Problem 8
+
+I went to office hours where the professor told discovered that he didnt mean to use qdat so the following is what we were supposed to do
+
+###8.1
+
+```{r Problem 8.1}
+PCA_autos <- prcomp(na.omit(autos[,c(10:14, 17, 19:26)]), scale. = T)
+eigen_values <- PCA_autos$sdev^2
+barplot(eigen_values, names.arg = colnames(PCA_autos$x))
+```
+The first 3 Principal components capture 
+```{r Problem 8.1b}
+sum(eigen_values[1:3]/sum(eigen_values))*100
+```
+
+###8.2
+
+a.)
+```{r 8.2a}
+PC_1 <- PCA_autos$x
+plot(PC_1[,1],PC_1[,2],cex=1, xlab = 'Principal Component 1', ylab = 'Principal Component 2')
+```
+b.)
+```{r 8.2b}
+PC_loadings <- PCA_autos$rotation
+plot(PC_loadings[,1],PC_loadings[,2],pch=19,cex=.7,
+     xlab = "PC #1 Loading",ylab = "PC #2 Loading",
+     xpd=T, xlim = c(-.5,.6))
+text(PC_loadings[,1],PC_loadings[,2]+.03, labels = row.names(PC_loadings),cex = 1,xpd=T)
+```
+
+c.) 
+```{r 8.2c}
+biplot(PCA_autos,scale = 0)
+```
+
+d.) From the loadings we can see that mpg variables are closely related, while the variables dealing with size are close.
+
+
+
+
